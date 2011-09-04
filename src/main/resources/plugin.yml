@@ -1,0 +1,9 @@
+name: Multiverse-ScratchWorlds
+main: com.onarandombox.MultiverseScratchWorlds.MultiverseScratchWorlds
+authors: ['lithium3141', 'fernferret']
+version: maven-version-number
+depend: ['Multiverse-Core']
+commands:
+  mvsw:
+    description: Generic Multiverse-ScratchWorlds Command
+    usage: /<command>
