@@ -17,7 +17,7 @@ public class ChunkRegenCommand extends ScratchWorldsCommand {
         super(plugin);
 
         this.setName("Chunk regenerate");
-        this.setCommandUsage("/mvsw chunk [world] [x z]");
+        this.setCommandUsage("/mvsw chunk regen [world] [x z]");
         this.setArgRange(0, 3);
         this.addKey("mvsw chunk regen");
         this.setPermission("multiverse.scratchworlds.chunkregen", "Regenerate chunk.", PermissionDefault.OP);
@@ -34,11 +34,28 @@ public class ChunkRegenCommand extends ScratchWorldsCommand {
         Chunk chunk = null;
         World world = null;
         switch(args.size()) {
-        case 0: world = player.getLocation().getWorld(); chunk = player.getLocation().getBlock().getChunk(); break;
-        case 1: sender.sendMessage("unimplemented"); return;
-        case 2: sender.sendMessage("unimplemented"); return;
-        case 3: sender.sendMessage("unimplemented"); return;
-        default: sender.sendMessage(ChatColor.RED + "Invalid argument count for chunk regen - this is a bug!"); return;
+        case 0:
+            world = player.getLocation().getWorld();
+            chunk = player.getLocation().getBlock().getChunk();
+            break;
+        case 1:
+            world = this.getPlugin().getServer().getWorld(args.get(0));
+            if(world == null) break;
+            chunk = player.getLocation().getBlock().getChunk();
+            chunk = world.getChunkAt(chunk.getX(), chunk.getZ());
+            break;
+        case 2:
+            world = player.getLocation().getWorld();
+            chunk = world.getChunkAt(Integer.parseInt(args.get(0)), Integer.parseInt(args.get(1)));
+            break;
+        case 3:
+            world = this.getPlugin().getServer().getWorld(args.get(0));
+            if(world == null) break;
+            chunk = world.getChunkAt(Integer.parseInt(args.get(1)), Integer.parseInt(args.get(2)));
+            break;
+        default:
+            sender.sendMessage(ChatColor.RED + "Invalid argument count for chunk regen - this is a bug!");
+            return;
         }
 
         if(chunk == null || world == null) {
