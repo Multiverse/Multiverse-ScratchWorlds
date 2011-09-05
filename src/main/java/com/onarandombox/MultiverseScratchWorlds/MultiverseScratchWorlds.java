@@ -48,12 +48,12 @@ public class MultiverseScratchWorlds extends JavaPlugin implements MVPlugin {
 
         // Test if the Core was found, if not we'll disable this plugin.
         if (this.core == null) {
-            LOG.info(LOG_PREFIX + "Multiverse-Core not found, will keep looking.");
+            LOG.info(LOG_PREFIX + "Multiverse-Core not found; disabling Multiverse-ScratchWorlds");
             this.getServer().getPluginManager().disablePlugin(this);
             return;
         }
         // Turn on Logging and register ourselves with Core
-        LOG.info(LOG_PREFIX + "- Version " + this.getDescription().getVersion() + " Enabled");
+        LOG.info(LOG_PREFIX + "- Version " + this.getDescription().getVersion() + " enabled");
         this.core.incrementPluginCount();
         
         // Register our commands
@@ -61,16 +61,20 @@ public class MultiverseScratchWorlds extends JavaPlugin implements MVPlugin {
 
         // Done
         LOG.info(LOG_PREFIX + "Enabled");
-
     }
 
+    /**
+     * Register all commands provided by the plugin.
+     */
     private void registerCommands() {
         // Get a common command handler for a unified menu
         this.commandHandler = this.getCore().getCommandHandler();
 
+        // Load the commands implemented by the plugin
         this.commandHandler.registerCommand(new ChunkCommand(this));
         this.commandHandler.registerCommand(new ChunkRegenCommand(this));
 
+        // Add the "root" command for this plugin to the help key list
         for(com.pneumaticraft.commandhandler.Command c : this.commandHandler.getAllCommands()) {
             if(c instanceof HelpCommand) {
                 c.addKey("mvsw");
@@ -103,6 +107,13 @@ public class MultiverseScratchWorlds extends JavaPlugin implements MVPlugin {
         return buffer;
     }
 
+    /**
+     * Print the argument to the Minecraft log at INFO level, and return the
+     * formatted log message as a String (to be appended to a buffer elsewhere).
+     *
+     * @param string The message to print, format, and return.
+     * @return The formatted log message that was printed.
+     */
     private String logAndBuffer(String string) {
         LOG.info(LOG_PREFIX + string);
         return LOG_PREFIX + string + "\n";
