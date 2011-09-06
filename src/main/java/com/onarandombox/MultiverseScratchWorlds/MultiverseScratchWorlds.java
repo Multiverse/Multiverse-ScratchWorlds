@@ -1,11 +1,16 @@
 package com.onarandombox.MultiverseScratchWorlds;
 
-import java.util.List;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -13,8 +18,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import com.onarandombox.MultiverseCore.MVPlugin;
 import com.onarandombox.MultiverseCore.MultiverseCore;
 import com.onarandombox.MultiverseCore.commands.HelpCommand;
-import com.onarandombox.MultiverseScratchWorlds.commands.ChunkCommand;
 import com.onarandombox.MultiverseScratchWorlds.commands.ChunkRegenCommand;
+import com.onarandombox.MultiverseScratchWorlds.commands.MagicCommand;
 import com.pneumaticraft.commandhandler.CommandHandler;
 
 public class MultiverseScratchWorlds extends JavaPlugin implements MVPlugin {
@@ -23,8 +28,9 @@ public class MultiverseScratchWorlds extends JavaPlugin implements MVPlugin {
     public static final String LOG_PREFIX = "[Multiverse-ScratchWorlds] ";
 
     private MultiverseCore core;
-
     private CommandHandler commandHandler;
+    private SWConfiguration swConfig;
+    protected Map<String, SWWorld> scratchWorlds = new HashMap<String, SWWorld>();
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String commandLabel, String[] args) {
@@ -55,12 +61,47 @@ public class MultiverseScratchWorlds extends JavaPlugin implements MVPlugin {
         // Turn on Logging and register ourselves with Core
         LOG.info(LOG_PREFIX + "- Version " + this.getDescription().getVersion() + " enabled");
         this.core.incrementPluginCount();
+
+        // Read the configuration
+        this.readConfig();
         
         // Register our commands
         this.registerCommands();
 
         // Done
         LOG.info(LOG_PREFIX + "Enabled");
+    }
+
+    /**
+     * Read the configuration from disk
+     */
+    private void readConfig() {
+        // Read configuration file
+        File configFile = new File(this.getDataFolder(), SWConfiguration.CONFIG_FILE_NAME);
+        this.swConfig = SWConfiguration.detectConfiguration(configFile);
+        while(this.swConfig.getVersion() != SWConfiguration.LATEST_CONFIG_VERSION) {
+            SWConfiguration upgraded = this.swConfig.upgrade();
+            if(upgraded == null) {
+                LOG.warning(LOG_PREFIX + "Unable to upgrade configuration from version " + this.swConfig.getVersion() + ".");
+                LOG.warning(LOG_PREFIX + "You may experience some instability. Continuing anyway...");
+                break;
+            }
+            this.swConfig = upgraded;
+        }
+       
+        // Add worlds marked scratch in config
+        for(String scratchWorldName : this.swConfig.readScratchWorldNames()) {
+            this.addScratchWorld(this.getServer().getWorld(scratchWorldName));
+        }
+    }
+
+    /**
+     * Write the configuration to disk
+     */
+    private void writeConfig() {
+        if(!this.swConfig.write(this)) {
+            LOG.warning(LOG_PREFIX + "Failed to save configuration file (version " + this.swConfig.getVersion() + "); continuing anyway...");
+        }
     }
 
     /**
@@ -71,8 +112,8 @@ public class MultiverseScratchWorlds extends JavaPlugin implements MVPlugin {
         this.commandHandler = this.getCore().getCommandHandler();
 
         // Load the commands implemented by the plugin
-        this.commandHandler.registerCommand(new ChunkCommand(this));
         this.commandHandler.registerCommand(new ChunkRegenCommand(this));
+        this.commandHandler.registerCommand(new MagicCommand(this));
 
         // Add the "root" command for this plugin to the help key list
         for(com.pneumaticraft.commandhandler.Command c : this.commandHandler.getAllCommands()) {
@@ -82,8 +123,34 @@ public class MultiverseScratchWorlds extends JavaPlugin implements MVPlugin {
         }
     }
 
+    public Map<String, SWWorld> getScratchWorlds() {
+        return this.scratchWorlds;
+    }
+
+    public Set<String> getScratchWorldNames() {
+        return this.scratchWorlds.keySet();
+    }
+
+    public void removeScratchWorld(World world) {
+        this.scratchWorlds.remove(world.getName());
+    }
+
+    public void addScratchWorld(World world) {
+        if(world != null) {
+            SWWorld scratchWorld = new SWWorld(world);
+            String worldName = world.getName(); 
+            boolean shouldReseed = this.swConfig.readShouldReseed(worldName);
+            scratchWorld.setShouldReseed(shouldReseed);
+            this.scratchWorlds.put(worldName, scratchWorld);
+        } else {
+            LOG.warning(LOG_PREFIX + "Error loading world! Continuing...");
+        }
+    }
+
     @Override
     public void onDisable() {
+        this.writeConfig();
+
         LOG.info(LOG_PREFIX + "Disabled");
     }
 
